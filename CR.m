@@ -1,0 +1,84 @@
+A_data = prepare_senatedata();
+
+[M, N] = size(A_data);
+
+Omega_predict = (A_data == 0);
+num_to_predict = sum(Omega_predict(:));
+
+%% APGD Parameters
+L = 1;
+x0 = zeros(M, N);
+tol = 1e-6;
+maxit = 1000;
+
+%% Tuning gamma
+
+gammas = 2.^linspace(-3, 9, 13); 
+Omega_all_known = (A_data ~= 0);
+
+gamma_best = zeros(1, 3); 
+
+for k = 1:3    
+    Omega_train = rand(M, N) < 0.5;
+    Omega_val = ~Omega_train;
+    val_indices = find(Omega_val);
+    num_val = length(val_indices);
+
+    A_train = A_data .* Omega_train;
+    
+    scores = zeros(1, 13);
+
+    for i = 1:13
+        gamma = gammas(i);
+        
+        X_opt = apgd(@(X) (X - A_train) .* Omega_train, ...
+                     @prox_nuc, gamma, L, x0, tol, maxit);
+        
+        % Calculate Score 
+        X_val_entries = X_opt(val_indices);
+        A_val_entries = A_data(val_indices);
+        
+        scores(1, i) = sum(X_val_entries .* A_val_entries > 0);
+    end
+
+    [max_score, max_idx] = max(scores);
+    gamma_best(k) = gammas(max_idx);
+end
+
+gamma_star = median(gamma_best);
+
+%% After having gamma*
+final_Omega_train = rand(M, N) < 0.5;
+final_Omega_train(final_train_indices) = true;
+
+final_Omega_val = ~final_Omega_train;
+final_val_indices = find(final_Omega_val);
+final_num_val = length(final_val_indices);
+
+final_A_train = A_data .* final_Omega_train;
+
+final_gradf_handle = @(X) (X - final_A_train) .* final_Omega_train;
+X_final_val = apgd(final_gradf_handle, @prox_nuc, gamma_star, L, x0, tol, maxit);
+
+final_X_val_entries = X_final_val(final_val_indices);
+final_A_val_entries = A_data(final_val_indices);
+final_correct_predictions = sum(final_X_val_entries .* final_A_val_entries > 0);
+
+fprintf('Final Validation Score for gamma_star=%f:\n', gamma_star);
+fprintf('< %d > out of < %d > possible\n', final_correct_predictions, final_num_val);
+
+%% Abstaining senators
+
+A_full_known = A_data .* Omega_all_known; 
+
+X_star = apgd(@(X) (X - A_full_known) .* Omega_all_known, @prox_nuc, gamma_star, L, x0, tol, maxit);
+
+[senator_i, bill_j] = find(Omega_predict);
+
+for idx = 1:length(senator_i)
+    i = senator_i(idx);
+    j = bill_j(idx);
+    predicted_vote = X_star(i, j);
+    
+    fprintf('For senator < %d > voting on bill < %d >, the predicted vote is <%f>\n', i, j, predicted_vote);
+end
