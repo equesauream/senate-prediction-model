@@ -44,6 +44,19 @@ function z = prox_l2sq(x, t)
     z = (1/(1 + 2 * t)) * x;
 end
 
+function A = prepare_senatedata()
+%   A0: A numeric matrix (one row per student, one column per field)
+%   fieldnames: A cell array of strings containing the extracted column headers
+
+    T = readtable('114_congress.csv', 'Delimiter', ',');
+    
+    T = T(:, 4:end);
+
+    A = table2array(T);
+    A(A == 0) = -1;
+    A(A == 0.5) = 0;
+end
+
 A = prepare_senatedata();
 
 % constant throughout passes
@@ -80,13 +93,14 @@ for pass = 2:15
     scores(1, pass - 1) = height(b_l1(b_l1 == 0));
     scores(2, pass - 1) = height(b_linf(b_linf == 0));
     scores(3, pass - 1) = height(b_l2sq(b_l2sq == 0));
-end
 
+
+end
 tcount = count * 14;
 fprintf('%12s', 'total')
 fprintf('%12i', sum(scores(1, :)), sum(scores(2, :)), sum(scores(3, :)), tcount)
 fprintf('\n')
 
 fprintf('%12s', 'percent')
-fprintf('%12f', sum(scores(1, :))/tcount, sum(scores(2, :))/tcount, sum(scores(3, :))/tcount)
+fprintf('%12i', sum(scores(1, :)), sum(scores(2, :)), sum(scores(3, :)), count * (15 - 2 + 1))
 fprintf('\n')

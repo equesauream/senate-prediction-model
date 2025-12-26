@@ -30,8 +30,7 @@ Omega_all_known = (A_data ~= 0);
 
 gamma_best = zeros(1, 3); 
 
-% run the hypertuning procedure 3 times, and take the median
-for k = 1:3
+for k = 1:3    
     Omega_train = rand(M, N) < 0.5;
     Omega_val = ~Omega_train;
     val_indices = find(Omega_val);
@@ -76,12 +75,12 @@ final_X_val_entries = X_final_val(final_val_indices);
 final_A_val_entries = A_data(final_val_indices);
 final_correct_predictions = sum(final_X_val_entries .* final_A_val_entries > 0);
 
-fprintf('Final score for gamma* = %f: ', gamma_star);
-fprintf('< %d > out of < %d > possible\n\n', final_correct_predictions, final_num_val);
+fprintf('Final score for gamma* =%f: ', gamma_star);
+fprintf('< %d > out of < %d > possible\n', final_correct_predictions, final_num_val);
 
 %% Abstaining senators
 
-fprintf("Predictions on how the abstaining senators would vote:\n\n")
+fprintf("Predictions on how the abstaining senators would vote.\n\n")
 
 A_full_known = A_data .* Omega_all_known; 
 
