@@ -1,3 +1,5 @@
+%% model for predicting senators voting patterns
+
 function z = prox_l1(x, t)
 % proximal gradient for t * ||x||_1
     [n, ~] = size(x);
@@ -44,20 +46,29 @@ function z = prox_l2sq(x, t)
     z = (1/(1 + 2 * t)) * x;
 end
 
+%% Beginning of driver script
+
 A = prepare_senatedata();
 
-% constant throughout passes
+% M = # of bills, N = # of senators
+[M, N] = size(A);
+
+% train on the first 6 senators, test on the remainder
+num_training = 6;
+
+%% APGD parameters
 gamma = 1;
 tol = 1e-6;
 maxit = 1e7;
 
+%% training & testing procedure
 fprintf('using gamma = %i, tol = %2s, maxit = %2s\n\n', gamma, tol, maxit);
 fprintf('%12s','pass','l1','linf', 'l2sq', 'count');
 fprintf('\n')
-for pass = 2:15
+for pass = 2:N
     count = height(ytraining);
-    Atraining = A(1:6, 1:(pass - 1));
-    ytraining = A(1:6, pass);
+    Atraining = A(1:num_training, 1:(pass - 1));
+    ytraining = A(1:num_training, pass);
 
     L = max(eig(Atraining' * Atraining));
     x0 = zeros(pass - 1, 1);
@@ -66,8 +77,8 @@ for pass = 2:15
     [x_linf, ~] = apgd(@(x) Atraining' * (Atraining * x - ytraining), @prox_linf, gamma, L, x0, tol, maxit);
     [x_l2sq, ~] = apgd(@(x) Atraining' * (Atraining * x - ytraining), @prox_l2sq, gamma, L, x0, tol, maxit);
 
-    Atest = A(7:end, 1:(pass - 1));
-    ytraining = A(7:end, pass);
+    Atest = A((num_training + 1):end, 1:(pass - 1));
+    ytraining = A((num_training + 1):end, pass);
 
     b_l1 = sign(Atest * x_l1) - ytraining;
     b_linf = sign(Atest * x_linf) - ytraining;
@@ -82,7 +93,7 @@ for pass = 2:15
     scores(3, pass - 1) = height(b_l2sq(b_l2sq == 0));
 end
 
-tcount = count * 14;
+tcount = count * (N - 1);
 fprintf('%12s', 'total')
 fprintf('%12i', sum(scores(1, :)), sum(scores(2, :)), sum(scores(3, :)), tcount)
 fprintf('\n')

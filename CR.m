@@ -12,6 +12,7 @@ end
 
 A_data = prepare_senatedata();
 
+% M = # of bills, N = # of senators
 [M, N] = size(A_data);
 
 Omega_predict = (A_data == 0);

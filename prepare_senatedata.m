@@ -9,4 +9,6 @@ function A = prepare_senatedata()
     A = table2array(T);
     A(A == 0) = -1;
     A(A == 0.5) = 0;
+
+    fprintf("Senate data has %i bills and %i senators.\n", height(A), width(A))
 end
